@@ -50,7 +50,7 @@ services:
       - cluster_network
 
   elasticsearch:
-    image: lucienfregosi/elasticsearch-configured:latest
+    image: lucienfregosi/elasticsearch-configured:v3
     ports:
       - "9200:9200"
       - "9300:9300"
@@ -58,13 +58,52 @@ services:
       ES_JAVA_OPTS: "-Xms1g -Xmx1g"
       CLUSTER_NAME : "elasticsearch"
       NODE_NAME : "elasticsearch"
-      PUBLISH_HOST : 217.182.142.202
+      PUBLISH_HOST : 217.182.141.128
     volumes:
       - /data/es
     networks:
       - cluster_network
 
+  cadvisor:
+    image: google/cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - "/:/rootfs:ro"
+      - "/var/run:/var/run:rw"
+      - "/sys:/sys:ro"
+      - "/var/lib/docker/:/var/lib/docker:ro"
+    networks:
+      - cluster_network
+  
+  spark-master:
+    image: singularities/spark
+    command: start-spark master
+    ports:
+      - 6066:6066
+      - 7070:7070
+      - 8090:8090
+      - 50070:50070
+    networks:
+      - cluster_network
+
+
+  spark-slave:
+    image: singularities/spark
+    command: start-spark worker spark-master
+    environment:
+      SPARK_WORKER_CORES: 1
+      SPARK_WORKER_MEMORY: 2g
+    depends_on:
+     - spark-master
+    networks:
+      - cluster_network
+
+
+
 networks:
   cluster_network:
       external: true
 
+volumes:
+  elasticdata:
